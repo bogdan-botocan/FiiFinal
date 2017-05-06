@@ -2,6 +2,7 @@
 #include <ctime>
 #include <algorithm>
 #include <climits>
+#include <vector>
 
 using namespace std;
 
@@ -31,7 +32,7 @@ int ST[3][3] =
 	{100, 15, 99999}
 }; 
 
-#define HIJACK_THE_PLANE 0x13f
+#define HIJACK_THE_PLANE 0x3f
 #define BOMB_THE_PLANE 0x3f3f3f3f
 #define MAX_N 10
 
@@ -86,10 +87,10 @@ int fitness(int solution[], int N, bool* valid)
 	return value;
 }
 
-#define GENERATION_SIZE 10000
+#define GENERATION_SIZE 1000
 
-int population[GENERATION_SIZE][3];
-int new_population[GENERATION_SIZE][3];
+vector<pair<int, int*>> population;
+vector<pair<int, int*>> new_population;
 
 #define INITIAL_POPULATION_SOLUTION_RANGE 100
 #define POPULATION_SOLUTION_RANGE 10
@@ -105,21 +106,19 @@ int solve(
 
 	for (int genId = 0; genId < generations_count; genId++)
 	{
-		for (int id = 0; id < generation_size; id++)
-		{
-			bool valid = false;
-			int fit = fitness(population[id], N, &valid);
+		sort(population.begin(), population.end());
 
-			if (fit < best_fitness && valid)
-			{
-				best_fitness = fit;
-			}
+		for (int id = 0; id < generation_size / 4; id++)
+		{
+			new_population.push_back(population[id]);
 		}
 
-		for (int id = 0; id < generation_size; id++)
+		population = new_population;
+
+		for (int id = 0; id < generation_size - generation_size / 4; id++)
 		{
-			int x = rand() % generation_size;
-			int y = rand() % generation_size;
+			int x = rand() % generation_size / 4;
+			int y = rand() % generation_size / 4;
 
 			if (rand() % 100 < xover_prob)
 			{
@@ -127,9 +126,9 @@ int solve(
 
 				for (int i = 0; i < point; i++)
 				{
-					int t = population[x][i];
-					population[x][i] = population[x][i + 1];
-					population[x][i + 1] = t;
+					int t = population[x].second[i];
+					population[x].second[i] = population[x].second[i + 1];
+					population[x].second[i + 1] = t;
 				}
 			}
 
@@ -137,32 +136,34 @@ int solve(
 			{
 				int point = rand() % N;
 				
-				population[x][point] += 
+				population[x].second[point] +=
 					(rand() % (2 * POPULATION_SOLUTION_RANGE) -
 						POPULATION_SOLUTION_RANGE);
 			}
 		}
 
-		cout << "Genid: " << genId << ": " << best_fitness << '\n';
+		std::cout << "Genid: " << genId << ": " << best_fitness << '\n';
 	}
 
 	return best_fitness;
 }
 
-
+bool dummy = false;
 int main()
 {
 	srand(time(NULL));
 
 	for (int i = 0; i < GENERATION_SIZE; i++)
 	{
+		int *x = new int[N];
 		for (int j = 0; j < 3; j++)
 		{
-			population[i][j] = LT[j][1] + (
+			x[j] = LT[j][1] + (
 				(rand() % (2 * INITIAL_POPULATION_SOLUTION_RANGE)) -
 				INITIAL_POPULATION_SOLUTION_RANGE);
+			population.push_back(make_pair(fitness(x, N, &dummy), x));
 		}
 	}
 
-	cout << solve(1000, GENERATION_SIZE, 100, 100) << '\n';
+	std::cout << solve(1000, GENERATION_SIZE, 100, 100) << '\n';
 }
