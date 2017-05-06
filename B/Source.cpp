@@ -4,43 +4,29 @@ using namespace std;
 
 int main()
 {
-	int N, K;
+	int long long N, K;
 	cin >> N >> K;
 
-	int last_safe_place = 0;
-	int previous_place = 0;
-	int count = 0;
-	int diff = 0;
-	int x;
+	int long long previous = 0;
+	int long long count = 0;
+	int long long current_length = 0;
 	for (int i = 0; i < N; i++)
 	{
-		cin >> x;
-
-		if (x - 1 == previous_place && last_safe_place != previous_place)
+		int long long x; cin >> x;
+		if (x == previous + 1)
 		{
-			previous_place = x;
-			continue;
+			current_length += 1;
+		}	
+		else
+		{
+			count += current_length / K;
+			current_length = 1;
 		}
 
-		last_safe_place = x - 1;
-		diff = x - last_safe_place;
-		
-		if (diff > K)
-		{
-			count += (diff / K);
-			diff = 0;
-		}
-
-		previous_place = x;
-		last_safe_place = previous_place - 1;
+		previous = x;
 	}
 
-	diff = x - last_safe_place;
-	if (diff > K)
-	{
-		count += (diff / K);
-		diff = 0;
-	}
+	count += current_length / K;
 
 	cout << count;
 }
