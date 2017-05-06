@@ -31,18 +31,26 @@ int ST[3][3] =
 	{100, 15, 99999}
 }; 
 
+#define HIJACK_THE_PLANE 0x13f
 #define BOMB_THE_PLANE 0x3f3f3f3f
-int fitness(int solution[], int N)
+#define MAX_N 10
+
+pair<int, int> temp[MAX_N];
+int fitness(int solution[], int N, bool* valid)
 {
+	*valid = true;
+
 	int value = 0;
 	for (int i = 0; i < N; i++)
 	{
 		if (solution[i] < LT[i][0])
 		{
+			*valid = false;
 			return BOMB_THE_PLANE;
 		}
 		else if (solution[i] > LT[i][2])
 		{
+			*valid = false;
 			return BOMB_THE_PLANE;
 		}
 
@@ -54,55 +62,99 @@ int fitness(int solution[], int N)
 		{
 			value += (solution[i] - LT[i][1]) * PC[i][1];
 		}
+	}
 
-		if (i > 0)
+	for (int i = 0; i < N; i++)
+	{
+		temp[i] = make_pair(solution[i], i);
+	}
+
+	sort(temp, temp + N);
+
+	for (int i = 1; i < N; i++)
+	{
+		if (abs(temp[i].first - temp[i - 1].first) <
+			ST[temp[i - 1].second][temp[i].second])
 		{
-			int x = i - 1;
-			int y = i;
-			
-			if (abs(solution[y] - solution[x]) < ST[x][y])
-			{
-				return BOMB_THE_PLANE;
-			}
+			int diff = ST[temp[i - 1].first][temp[i].second] -
+				abs(temp[i].first - temp[i - 1].first);
+			*valid = false;
+			value += diff * HIJACK_THE_PLANE;
 		}
 	}
 
 	return value;
 }
 
-#define POPULATION_SIZE 100
+#define GENERATION_SIZE 10000
 
-int population[POPULATION_SIZE][3];
+int population[GENERATION_SIZE][3];
+int new_population[GENERATION_SIZE][3];
+
+#define INITIAL_POPULATION_SOLUTION_RANGE 100
+#define POPULATION_SOLUTION_RANGE 10
 
 int solve(
 	int generations_count,
 	int generation_size,
-	double xover_prob,
-	double mutat_prob
+	int xover_prob,
+	int mutat_prob
 )
 {
 	int best_fitness = INT_MAX;
 
 	for (int genId = 0; genId < generations_count; genId++)
 	{
-		int fit = fitness(population[genId], N);
-
-		if (fit < best_fitness)
+		for (int id = 0; id < generation_size; id++)
 		{
-			best_fitness = fit;
+			bool valid = false;
+			int fit = fitness(population[id], N, &valid);
+
+			if (fit < best_fitness && valid)
+			{
+				best_fitness = fit;
+			}
 		}
+
+		for (int id = 0; id < generation_size; id++)
+		{
+			int x = rand() % generation_size;
+			int y = rand() % generation_size;
+
+			if (rand() % 100 < xover_prob)
+			{
+				int point = rand() % N;
+
+				for (int i = 0; i < point; i++)
+				{
+					int t = population[x][i];
+					population[x][i] = population[x][i + 1];
+					population[x][i + 1] = t;
+				}
+			}
+
+			if (rand() % 100 < mutat_prob)
+			{
+				int point = rand() % N;
+				
+				population[x][point] += 
+					(rand() % (2 * POPULATION_SOLUTION_RANGE) -
+						POPULATION_SOLUTION_RANGE);
+			}
+		}
+
+		cout << "Genid: " << genId << ": " << best_fitness << '\n';
 	}
 
 	return best_fitness;
 }
 
-#define INITIAL_POPULATION_SOLUTION_RANGE 10
 
 int main()
 {
 	srand(time(NULL));
 
-	for (int i = 0; i < POPULATION_SIZE; i++)
+	for (int i = 0; i < GENERATION_SIZE; i++)
 	{
 		for (int j = 0; j < 3; j++)
 		{
@@ -112,5 +164,5 @@ int main()
 		}
 	}
 
-	cout << solve(100, POPULATION_SIZE, 0.2, 0.4);
+	cout << solve(1000, GENERATION_SIZE, 100, 100) << '\n';
 }
